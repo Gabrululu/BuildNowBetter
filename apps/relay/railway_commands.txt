@@ -1,7 +1,8 @@
 Root Directory: (vacío / raíz del repo, NO apps/relay)
 
 Install Command:
-pnpm install --frozen-lockfile && pnpm --filter @buildnowbetter/relay build
+pnpm install --frozen-lockfile && pnpm --filter @buildnowbetter/shared build && pnpm --filter @buildnowbetter/relay build
+
 
 Build Command:
 pnpm --filter @buildnowbetter/relay build
