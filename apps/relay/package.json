@@ -1,0 +1,26 @@
+{
+  "name": "@buildnowbetter/relay",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "lint": "echo 'no lint configured yet'"
+  },
+  "dependencies": {
+    "@buildnowbetter/shared": "workspace:*",
+    "cors": "^2.8.6",
+    "dotenv": "^16.4.7",
+    "express": "^5.2.1",
+    "viem": "^2.47.6"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^22.8.5",
+    "tsx": "^4.23.1",
+    "typescript": "~6.0.3"
+  }
+}

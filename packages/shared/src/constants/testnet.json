@@ -1,0 +1,12 @@
+{
+  "network": null,
+  "chainId": null,
+  "organizer": null,
+  "deployedAt": null,
+  "contracts": {
+    "IdentityRegistry": null,
+    "SocialGraph": null,
+    "ReputationPassport": null,
+    "FounderPassport": null
+  }
+}

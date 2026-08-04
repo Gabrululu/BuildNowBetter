@@ -1,0 +1,20 @@
+{
+  "name": "buildnowbetter",
+  "version": "0.1.0",
+  "private": true,
+  "description": "BuildNowBetter — Grafo de Reputacion en Vivo. DeSoc live-workshop demo for BNB AI Hack.",
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "test": "turbo run test",
+    "lint": "turbo run lint"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.2"
+  }
+}
