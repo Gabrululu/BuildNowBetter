@@ -32,4 +32,9 @@ export default defineConfig({
       chainId: 97,
     },
   },
+  verify: {
+    etherscan: {
+      apiKey: configVariable("BSCSCAN_API_KEY"),
+    },
+  },
 });

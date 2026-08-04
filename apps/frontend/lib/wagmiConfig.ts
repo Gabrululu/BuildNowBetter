@@ -1,4 +1,7 @@
-import { getDefaultConfig } from "@rainbow-me/rainbowkit";
+import { connectorsForWallets } from "@rainbow-me/rainbowkit";
+import { coinbaseWallet, metaMaskWallet, rainbowWallet, walletConnectWallet } from "@rainbow-me/rainbowkit/wallets";
+import { http } from "viem";
+import { createConfig } from "wagmi";
 import { bscTestnet } from "wagmi/chains";
 
 const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID;
@@ -15,9 +18,29 @@ if (!projectId) {
   );
 }
 
-export const wagmiConfig = getDefaultConfig({
-  appName: "BuildNowBetter",
-  projectId: projectId || "00000000000000000000000000000000",
+// Curated wallet list instead of RainbowKit's getDefaultConfig/getDefaultWallets: their default
+// list includes the "Base Account" connector, which pulls in @coinbase/cdp-sdk (Solana + x402
+// payment support we never use) and its unresolvable optional @x402/* peer deps — that breaks
+// both the webpack and Turbopack dev compilers. coinbaseWallet here is the lightweight classic
+// Coinbase Wallet connector, unrelated to that SDK.
+const connectors = connectorsForWallets(
+  [
+    {
+      groupName: "Recomendadas",
+      wallets: [metaMaskWallet, walletConnectWallet, rainbowWallet, coinbaseWallet],
+    },
+  ],
+  {
+    appName: "BuildNowBetter",
+    projectId: projectId || "00000000000000000000000000000000",
+  },
+);
+
+export const wagmiConfig = createConfig({
+  connectors,
   chains: [bscTestnet],
+  transports: {
+    [bscTestnet.id]: http(),
+  },
   ssr: true,
 });

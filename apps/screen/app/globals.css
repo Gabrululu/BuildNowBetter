@@ -62,13 +62,27 @@ header h1 {
   min-height: 0;
 }
 
-.leaderboard {
+.sidebar {
   border-left: 1px solid #1c2330;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.leaderboard,
+.projects-panel {
+  flex: 1;
+  min-height: 0;
   padding: 2rem;
   overflow-y: auto;
 }
 
-.leaderboard h2 {
+.projects-panel {
+  border-top: 1px solid #1c2330;
+}
+
+.leaderboard h2,
+.projects-panel h2 {
   font-size: clamp(1.25rem, 2vw, 1.75rem);
   margin-top: 0;
 }
@@ -97,5 +111,47 @@ header h1 {
 
 .leaderboard .score {
   color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.projects-panel .muted {
+  color: var(--muted);
+  font-size: 1rem;
+}
+
+.projects-panel ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.projects-panel li {
+  border-bottom: 1px solid #1c2330;
+  padding-bottom: 1rem;
+}
+
+.projects-panel .name {
+  display: block;
+  font-weight: 600;
+  font-size: clamp(1rem, 1.4vw, 1.25rem);
+}
+
+.projects-panel .desc {
+  margin: 0.25rem 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.projects-panel .team {
+  margin: 0.25rem 0;
+  font-size: 0.9rem;
+}
+
+.projects-panel .endorsements {
+  color: var(--accent);
+  font-size: 0.85rem;
   font-variant-numeric: tabular-nums;
 }

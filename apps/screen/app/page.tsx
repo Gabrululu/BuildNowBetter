@@ -2,10 +2,11 @@
 
 import { Leaderboard } from "@/components/Leaderboard";
 import { LiveGraph } from "@/components/LiveGraph";
+import { ProjectsPanel } from "@/components/ProjectsPanel";
 import { useRelayStream } from "@/lib/useRelayStream";
 
 export default function ScreenPage() {
-  const { nodes, edges, leaderboard, connected } = useRelayStream();
+  const { nodes, edges, leaderboard, projects, connected } = useRelayStream();
 
   return (
     <main>
@@ -19,7 +20,10 @@ export default function ScreenPage() {
         <div className="graph-panel">
           <LiveGraph nodes={nodes} edges={edges} />
         </div>
-        <Leaderboard entries={leaderboard} />
+        <div className="sidebar">
+          <Leaderboard entries={leaderboard} />
+          <ProjectsPanel projects={projects} nodes={nodes} />
+        </div>
       </div>
     </main>
   );

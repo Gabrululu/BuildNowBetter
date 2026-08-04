@@ -1,12 +1,13 @@
 "use client";
 
-import type { GraphEdge, GraphNode, LeaderboardEntry } from "@buildnowbetter/shared";
+import type { FounderProjectSummary, GraphEdge, GraphNode, LeaderboardEntry } from "@buildnowbetter/shared";
 import { useEffect, useState } from "react";
 
 export interface RelaySnapshot {
   nodes: GraphNode[];
   edges: GraphEdge[];
   leaderboard: LeaderboardEntry[];
+  projects: FounderProjectSummary[];
 }
 
 export interface RelayState extends RelaySnapshot {
@@ -36,6 +37,17 @@ const PLACEHOLDER_STATE: RelayState = {
     { identityId: "1", displayName: "Ada", score: 6, badgeCount: 2 },
     { identityId: "2", displayName: "Grace", score: 4, badgeCount: 1 },
     { identityId: "4", displayName: "Katie", score: 3, badgeCount: 1 },
+  ],
+  projects: [
+    {
+      projectId: "1",
+      leadIdentityId: "3",
+      name: "ReputationGraph",
+      shortDesc: "Grafo social en vivo para hackathons.",
+      greenfieldURI: "",
+      teamMemberIds: ["3", "1"],
+      endorsementCount: 4,
+    },
   ],
   connected: false,
 };

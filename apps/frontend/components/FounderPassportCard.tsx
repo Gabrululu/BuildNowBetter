@@ -27,6 +27,7 @@ function RegisterProjectForm() {
 
   const [name, setName] = useState("");
   const [shortDesc, setShortDesc] = useState("");
+  const [greenfieldURI, setGreenfieldURI] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | undefined>();
 
@@ -46,7 +47,7 @@ function RegisterProjectForm() {
             wallet: address,
             name,
             shortDesc,
-            greenfieldURI: "",
+            greenfieldURI,
             nonce,
           } as const;
           const signature = await signTypedDataAsync({
@@ -59,7 +60,7 @@ function RegisterProjectForm() {
             wallet: address,
             name,
             shortDesc,
-            greenfieldURI: "",
+            greenfieldURI,
             nonce: nonce.toString(),
             signature,
           });
@@ -92,6 +93,17 @@ function RegisterProjectForm() {
           onChange={(event) => setShortDesc(event.target.value)}
           maxLength={280}
           rows={3}
+        />
+      </div>
+      <div className="field">
+        <label htmlFor="projectMedia">Link de media (opcional)</label>
+        <input
+          id="projectMedia"
+          type="url"
+          value={greenfieldURI}
+          onChange={(event) => setGreenfieldURI(event.target.value)}
+          placeholder="Foto, repo, demo — sube el archivo a Greenfield y pega el link aquí"
+          maxLength={512}
         />
       </div>
       <button type="submit" disabled={isSubmitting || name.trim().length === 0}>

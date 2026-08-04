@@ -1,12 +1,12 @@
 {
-  "network": null,
-  "chainId": null,
-  "organizer": null,
-  "deployedAt": null,
+  "network": "bscTestnet",
+  "chainId": 97,
+  "organizer": "0x3b0eb4bd67d7243a4dbe684e9c922d9c3919afbf",
+  "deployedAt": "2026-08-04T06:27:49.051Z",
   "contracts": {
-    "IdentityRegistry": null,
-    "SocialGraph": null,
-    "ReputationPassport": null,
-    "FounderPassport": null
+    "IdentityRegistry": "0x321a83089d68c37c2ee4df00cc30b4d330f0399b",
+    "SocialGraph": "0x2bd8abeb2f5598f8477560c70c742affc22912de",
+    "ReputationPassport": "0x7007508b1420e719d7a7a69b98765f60c7aae759",
+    "FounderPassport": "0x56018a39f418c8e4b138648e2d307f137b2ec3d8"
   }
 }
