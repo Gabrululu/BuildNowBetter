@@ -29,12 +29,48 @@ Requiere pnpm 9+ y Node 20+.
 
 ```bash
 pnpm install
-pnpm --filter contracts test
+pnpm test
 pnpm dev
 ```
 
+`pnpm test` corre los tests de contratos (Hardhat), `shared` y `relay` (Vitest) vía Turborepo;
+`frontend`/`screen` no tienen tests todavía. El mismo comando corre en CI (`.github/workflows/ci.yml`)
+en cada push/PR a `main`, junto con `pnpm build`.
+
 Cada app tiene un `.env.example` — copiar a `.env` y completar antes de correr `pnpm dev` o
 desplegar a testnet.
+
+## Despliegue
+
+`relay` es un proceso persistente (SSE + chain watcher) y no corre en serverless — va en
+Railway. `frontend` y `screen` son Next.js normales — van en Vercel, como dos proyectos
+separados apuntando al mismo repo.
+
+| App      | Proveedor | URL                                              |
+|----------|-----------|---------------------------------------------------|
+| relay    | Railway   | https://buildnowbetter.up.railway.app              |
+| frontend | Vercel    | https://build-now-better-frontend.vercel.app       |
+| screen   | Vercel    | https://build-now-better-screen.vercel.app         |
+
+### relay (Railway)
+
+- **Root Directory:** raíz del repo, no `apps/relay` — Railway necesita ver `pnpm-lock.yaml` y
+  `packageManager` en la raíz para detectar pnpm; si no, cae a npm y `workspace:*` rompe el install.
+- **Build Command:** `pnpm install --frozen-lockfile && pnpm --filter @buildnowbetter/shared build && pnpm --filter @buildnowbetter/relay build`
+  (`shared` debe compilarse antes que `relay` — su `main` apunta a `dist/`, no a `src/`, porque
+  `node dist/index.js` en producción no puede transpilar `.ts` al vuelo como sí hace `tsx` en dev).
+- **Start Command:** `node apps/relay/dist/index.js`
+- **Variables de entorno:** `PORT`, `CORS_ORIGIN` (lista separada por comas de orígenes
+  permitidos — hoy los dominios de `frontend` y `screen` en Vercel), `BSC_TESTNET_RPC_URL`,
+  `IDENTITY_REGISTRY_ADDRESS`, `SOCIAL_GRAPH_ADDRESS`, `REPUTATION_PASSPORT_ADDRESS`,
+  `FOUNDER_PASSPORT_ADDRESS`, `RELAY_HOT_WALLET_PRIVATE_KEY` (hot wallet testnet, rotar antes de
+  cualquier evento real).
+
+### frontend / screen (Vercel)
+
+Dos proyectos de Vercel sobre el mismo repo, cada uno con su propio **Root Directory**
+(`apps/frontend` / `apps/screen`) — Vercel detecta el workspace de pnpm solo. Variable clave en
+ambos: `NEXT_PUBLIC_RELAY_URL` apuntando a la URL pública del relay.
 
 ## Fase 2 (fuera de alcance por ahora)
 

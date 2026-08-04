@@ -10,7 +10,8 @@
   },
   "scripts": {
     "build": "tsc",
-    "lint": "echo 'no lint configured yet'"
+    "lint": "echo 'no lint configured yet'",
+    "test": "vitest run"
   },
   "devDependencies": {
     "typescript": "~6.0.3",

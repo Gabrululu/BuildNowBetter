@@ -9,6 +9,7 @@
     "deploy:testnet": "hardhat run scripts/deploy-all.ts --network bscTestnet",
     "deploy:local": "hardhat run scripts/deploy-all.ts --network hardhatMainnet",
     "mint-badge": "hardhat run scripts/mint-badge.ts --network bscTestnet",
+    "set-relay": "hardhat run scripts/set-relay.ts --network bscTestnet",
     "lint": "echo 'no lint configured yet'"
   },
   "devDependencies": {
