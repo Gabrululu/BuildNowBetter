@@ -1,8 +1,16 @@
 "use client";
 
-import { identityRegistryAbi } from "@buildnowbetter/shared";
+import { RELAY_ACTION_TYPES, identityRegistryAbi } from "@buildnowbetter/shared";
 import { useEffect, useState } from "react";
-import { useAccount, useReadContract, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
+import {
+  useAccount,
+  useChainId,
+  useReadContract,
+  useSignTypedData,
+  useWaitForTransactionReceipt,
+} from "wagmi";
+
+import { postToRelay, randomNonce, relayDomain } from "@/lib/relayClient";
 
 const IDENTITY_REGISTRY_ADDRESS = process.env.NEXT_PUBLIC_IDENTITY_REGISTRY_ADDRESS as
   | `0x${string}`
@@ -10,7 +18,11 @@ const IDENTITY_REGISTRY_ADDRESS = process.env.NEXT_PUBLIC_IDENTITY_REGISTRY_ADDR
 
 export function RegisterIdentityCard() {
   const { address } = useAccount();
+  const chainId = useChainId();
   const [displayName, setDisplayName] = useState("");
+  const [txHash, setTxHash] = useState<`0x${string}` | undefined>();
+  const [submitError, setSubmitError] = useState<string | undefined>();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {
     data: isRegistered,
@@ -24,7 +36,7 @@ export function RegisterIdentityCard() {
     query: { enabled: Boolean(address && IDENTITY_REGISTRY_ADDRESS) },
   });
 
-  const { writeContract, data: txHash, isPending, error } = useWriteContract();
+  const { signTypedDataAsync } = useSignTypedData();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
 
   useEffect(() => {
@@ -63,22 +75,48 @@ export function RegisterIdentityCard() {
     );
   }
 
+  const isBusy = isSubmitting || isConfirming;
+
   return (
     <form
       className="card"
-      onSubmit={(event) => {
+      onSubmit={async (event) => {
         event.preventDefault();
-        writeContract({
-          address: IDENTITY_REGISTRY_ADDRESS,
-          abi: identityRegistryAbi,
-          functionName: "register",
-          args: [displayName, ""],
-        });
+        if (!address) return;
+        setSubmitError(undefined);
+        setIsSubmitting(true);
+        try {
+          const nonce = randomNonce();
+          const message = {
+            wallet: address,
+            displayName,
+            metadataURI: "",
+            nonce,
+          } as const;
+          const signature = await signTypedDataAsync({
+            domain: relayDomain(chainId, IDENTITY_REGISTRY_ADDRESS),
+            types: RELAY_ACTION_TYPES.RegisterIdentity,
+            primaryType: "RegisterIdentity",
+            message,
+          });
+          const { hash } = await postToRelay("/register", {
+            wallet: address,
+            displayName,
+            metadataURI: "",
+            nonce: nonce.toString(),
+            signature,
+          });
+          setTxHash(hash);
+        } catch (error) {
+          setSubmitError(error instanceof Error ? error.message : "No se pudo registrar");
+        } finally {
+          setIsSubmitting(false);
+        }
       }}
     >
       <span className="eyebrow">Último paso</span>
       <h2>Únete al grafo</h2>
-      <p className="muted">Elige cómo quieres aparecer en la pantalla grande.</p>
+      <p className="muted">Elige cómo quieres aparecer en la pantalla grande. Sin gas — el relay paga por ti.</p>
       <div className="field">
         <label htmlFor="displayName">Tu nombre</label>
         <input
@@ -91,10 +129,10 @@ export function RegisterIdentityCard() {
           maxLength={64}
         />
       </div>
-      <button type="submit" disabled={isPending || isConfirming || displayName.trim().length === 0}>
-        {isPending || isConfirming ? "Registrando…" : "Unirme al grafo"}
+      <button type="submit" disabled={isBusy || displayName.trim().length === 0}>
+        {isBusy ? "Registrando…" : "Unirme al grafo"}
       </button>
-      {error && <p className="muted">No se pudo registrar: {error.message}</p>}
+      {submitError && <p className="muted">No se pudo registrar: {submitError}</p>}
     </form>
   );
 }

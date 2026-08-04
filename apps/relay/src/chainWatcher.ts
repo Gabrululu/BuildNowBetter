@@ -1,7 +1,14 @@
-import { identityRegistryAbi, reputationPassportAbi, socialGraphAbi } from "@buildnowbetter/shared";
+import { founderPassportAbi, identityRegistryAbi, reputationPassportAbi, socialGraphAbi } from "@buildnowbetter/shared";
 import { createPublicClient, http } from "viem";
 
-import { CHAIN, IDENTITY_REGISTRY_ADDRESS, REPUTATION_PASSPORT_ADDRESS, RPC_URL, SOCIAL_GRAPH_ADDRESS } from "./config.js";
+import {
+  CHAIN,
+  FOUNDER_PASSPORT_ADDRESS,
+  IDENTITY_REGISTRY_ADDRESS,
+  REPUTATION_PASSPORT_ADDRESS,
+  RPC_URL,
+  SOCIAL_GRAPH_ADDRESS,
+} from "./config.js";
 import { relayState } from "./state.js";
 
 /**
@@ -60,8 +67,56 @@ export function startChainWatcher(): void {
     });
   }
 
+  if (FOUNDER_PASSPORT_ADDRESS) {
+    client.watchContractEvent({
+      address: FOUNDER_PASSPORT_ADDRESS,
+      abi: founderPassportAbi,
+      eventName: "ProjectRegistered",
+      onLogs: (logs) => {
+        for (const log of logs) {
+          const { projectId, leadIdentityId, name, shortDesc, greenfieldURI } = log.args;
+          if (projectId === undefined || leadIdentityId === undefined || name === undefined) continue;
+          relayState.registerProject(
+            projectId.toString(),
+            leadIdentityId.toString(),
+            name,
+            shortDesc ?? "",
+            greenfieldURI ?? "",
+          );
+        }
+      },
+    });
+
+    client.watchContractEvent({
+      address: FOUNDER_PASSPORT_ADDRESS,
+      abi: founderPassportAbi,
+      eventName: "TeamMemberAdded",
+      onLogs: (logs) => {
+        for (const log of logs) {
+          const { projectId, identityId } = log.args;
+          if (projectId === undefined || identityId === undefined) continue;
+          relayState.addTeamMember(projectId.toString(), identityId.toString());
+        }
+      },
+    });
+
+    client.watchContractEvent({
+      address: FOUNDER_PASSPORT_ADDRESS,
+      abi: founderPassportAbi,
+      eventName: "BuilderEndorsed",
+      onLogs: (logs) => {
+        for (const log of logs) {
+          const { projectId } = log.args;
+          if (projectId === undefined) continue;
+          relayState.recordBuilderEndorsement(projectId.toString());
+        }
+      },
+    });
+  }
+
   console.log(
     `[relay] watching IdentityRegistry ${IDENTITY_REGISTRY_ADDRESS} and SocialGraph ${SOCIAL_GRAPH_ADDRESS}` +
-      (REPUTATION_PASSPORT_ADDRESS ? ` and ReputationPassport ${REPUTATION_PASSPORT_ADDRESS}` : ""),
+      (REPUTATION_PASSPORT_ADDRESS ? ` and ReputationPassport ${REPUTATION_PASSPORT_ADDRESS}` : "") +
+      (FOUNDER_PASSPORT_ADDRESS ? ` and FounderPassport ${FOUNDER_PASSPORT_ADDRESS}` : ""),
   );
 }

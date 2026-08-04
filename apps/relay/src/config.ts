@@ -12,6 +12,7 @@ export const RPC_URL = process.env.BSC_TESTNET_RPC_URL ?? "https://data-seed-pre
 export const IDENTITY_REGISTRY_ADDRESS = process.env.IDENTITY_REGISTRY_ADDRESS as Address | undefined;
 export const SOCIAL_GRAPH_ADDRESS = process.env.SOCIAL_GRAPH_ADDRESS as Address | undefined;
 export const REPUTATION_PASSPORT_ADDRESS = process.env.REPUTATION_PASSPORT_ADDRESS as Address | undefined;
+export const FOUNDER_PASSPORT_ADDRESS = process.env.FOUNDER_PASSPORT_ADDRESS as Address | undefined;
 
 export const RELAY_HOT_WALLET_PRIVATE_KEY = process.env.RELAY_HOT_WALLET_PRIVATE_KEY as
   | `0x${string}`
