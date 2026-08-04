@@ -1,0 +1,10 @@
+Root Directory: (vacío / raíz del repo, NO apps/relay)
+
+Install Command:
+pnpm install --frozen-lockfile && pnpm --filter @buildnowbetter/relay build
+
+Build Command:
+pnpm --filter @buildnowbetter/relay build
+
+Start Command:
+node apps/relay/dist/index.js

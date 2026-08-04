@@ -19,4 +19,8 @@ export const RELAY_HOT_WALLET_PRIVATE_KEY = process.env.RELAY_HOT_WALLET_PRIVATE
   | undefined;
 
 export const PORT = Number(process.env.PORT ?? 4000);
-export const CORS_ORIGIN = process.env.CORS_ORIGIN ?? "*";
+
+// Comma-separated list of allowed origins, e.g. "https://app.vercel.app,https://screen.vercel.app".
+// Falls back to "*" (any origin) when unset.
+const rawCorsOrigin = process.env.CORS_ORIGIN?.split(",").map((origin) => origin.trim()).filter(Boolean);
+export const CORS_ORIGIN: string | string[] = rawCorsOrigin?.length ? rawCorsOrigin : "*";
