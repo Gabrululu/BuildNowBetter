@@ -24,8 +24,13 @@ Varios contratos pequeños, no un monolito, todos referenciando `IdentityRegistr
 - **`SocialGraph.sol`** — `endorse` / `endorseFor`, dedup por par, evento `Endorsed`.
 - **`ReputationPassport.sol`** — `mintBadge`, solo organizador/facilitador (nunca gasless: un
   mensaje mal firmado nunca puede inflar la reputación de nadie). Sin score on-chain.
-- **`FounderPassport.sol`** — `registerProject`, `addTeamMember`, `endorseBuilder` (namespace
-  separado de `SocialGraph.endorse`), con `greenfieldURI` opcional para media.
+- **`FounderPassport.sol`** — `registerProject`, `inviteTeamMember` + `acceptTeamInvite` (unirse a
+  un equipo requiere el consentimiento del invitado — nadie te agrega unilateralmente),
+  `endorseBuilder` (namespace separado de `SocialGraph.endorse`, y solo válido contra un miembro
+  real del equipo), con `greenfieldURI` opcional para media. Todo el contenido que paga el relay
+  (`displayName`, `name`, `shortDesc`, `skillTag`, etc.) tiene un tope de bytes fijo en el propio
+  contrato — sin eso, una sola firma con un string de un megabyte era un drenaje directo de la hot
+  wallet.
 
 **Diseño event-log-only**: nada de adjacency lists ni scores on-chain. El grafo, el leaderboard
 y el peso de cada nodo se reconstruyen a partir de los eventos — así los pesos de badges son
@@ -42,10 +47,35 @@ espectador consumen ese stream — nunca abren su propia suscripción RPC.
 
 El asistente firma un mensaje EIP-712 tipado para una acción específica y whitelisteada
 (`RegisterIdentity`, `Endorse`, `RegisterProject`, `EndorseBuilder` — nunca badges). El relay
-verifica la firma, recupera el address, y llama al entrypoint `*For(...)` correspondiente
-pagando gas desde su propia wallet caliente de testnet (desechable, generada solo para el
-evento). El relay nunca acepta calldata arbitrario — solo estas acciones fijas — y aplica
-rate-limit por firmante.
+llama al entrypoint `*For(...)` correspondiente pagando gas desde su propia wallet caliente de
+testnet (desechable, generada solo para el evento). El relay nunca acepta calldata arbitrario —
+solo estas acciones fijas — y aplica rate-limit por firmante.
+
+**El relay no es parte de la base de confianza.** La firma se verifica **on-chain**, en
+`lib/RelaySigned.sol`: cada `*For(...)` recibe `nonce`, `deadline` y `signature`, recupera el
+firmante con `ECDSA.recover` sobre el digest EIP-712 del propio contrato, y exige que sea igual al
+`wallet` recibido. Un relay comprometido no puede fabricar intención ajena; solo puede negarse a
+pagar gas.
+
+Tres propiedades salen de ahí:
+
+- **Anti-replay:** `relayNonceUsed[wallet][nonce]` es de un solo uso. Antes el `nonce` viajaba
+  firmado pero nadie lo registraba, así que un payload capturado se podía reenviar para siempre —
+  y `registerProjectFor` no tiene idempotencia natural (cada llamada acuña un `projectId` nuevo),
+  así que era proyectos infinitos a costa de la hot wallet.
+- **Caducidad:** `deadline` acota cuánto tiempo sirve una firma filtrada (15 min por defecto,
+  `RELAY_SIGNATURE_TTL_SECONDS`).
+- **Aislamiento entre módulos:** el domain separator incluye `address(this)`, así que una firma de
+  `Endorse` para `SocialGraph` no vale contra `FounderPassport`.
+
+El relay además rechaza `deadline` vencido y `(wallet, nonce)` repetido *antes* de enviar la tx
+(`replayGuard.ts`). Eso no es la barrera de seguridad — la cadena lo es — sino una forma de no
+gastar gas en transacciones condenadas a revertir.
+
+Las definiciones de tipos en `packages/shared/src/relayActions.ts` y los typehashes de Solidity
+tienen que coincidir carácter por carácter; si divergen, *todas* las firmas quedan inválidas en
+silencio. `test/RelaySigned.test.ts` firma con las definiciones de `shared` y además compara los
+strings contra los `.sol`.
 
 ## Degradación elegante
 

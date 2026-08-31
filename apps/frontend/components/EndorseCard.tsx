@@ -3,17 +3,16 @@
 import { RELAY_ACTION_TYPES } from "@buildnowbetter/shared";
 import { useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { useAccount, useChainId, useSignTypedData } from "wagmi";
+import { useAccount, useSignTypedData } from "wagmi";
 
 import { useMyIdentity } from "@/lib/useMyIdentity";
 import { useRelaySnapshot } from "@/lib/useRelaySnapshot";
-import { postToRelay, randomNonce, relayDomain } from "@/lib/relayClient";
+import { postToRelay, randomNonce, relayDomain, signatureDeadline } from "@/lib/relayClient";
 
 const SOCIAL_GRAPH_ADDRESS = process.env.NEXT_PUBLIC_SOCIAL_GRAPH_ADDRESS as `0x${string}` | undefined;
 
 export function EndorseCard() {
   const { address } = useAccount();
-  const chainId = useChainId();
   const { identityId: myIdentityId } = useMyIdentity();
   const { data: snapshot, refetch } = useRelaySnapshot();
   const queryClient = useQueryClient();
@@ -48,13 +47,15 @@ export function EndorseCard() {
         setIsSubmitting(true);
         try {
           const nonce = randomNonce();
+          const deadline = signatureDeadline();
           const message = {
             wallet: address,
             toIdentityId: BigInt(targetId),
             nonce,
+            deadline,
           } as const;
           const signature = await signTypedDataAsync({
-            domain: relayDomain(chainId, SOCIAL_GRAPH_ADDRESS),
+            domain: relayDomain(SOCIAL_GRAPH_ADDRESS),
             types: RELAY_ACTION_TYPES.Endorse,
             primaryType: "Endorse",
             message,
@@ -63,6 +64,7 @@ export function EndorseCard() {
             wallet: address,
             toIdentityId: targetId,
             nonce: nonce.toString(),
+            deadline: deadline.toString(),
             signature,
           });
           setLastEndorsedId(targetId);

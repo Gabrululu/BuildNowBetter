@@ -32,5 +32,7 @@ export interface FounderProjectSummary {
   shortDesc: string;
   greenfieldURI: string;
   teamMemberIds: string[];
+  /** Invited but not yet accepted — joining a team is the invitee's own decision. */
+  invitedIdentityIds: string[];
   endorsementCount: number;
 }

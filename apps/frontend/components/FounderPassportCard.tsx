@@ -1,17 +1,11 @@
 "use client";
 
-import { RELAY_ACTION_TYPES, founderPassportAbi } from "@buildnowbetter/shared";
+import { RELAY_ACTION_TYPES } from "@buildnowbetter/shared";
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
-import {
-  useAccount,
-  useChainId,
-  useSignTypedData,
-  useWaitForTransactionReceipt,
-  useWriteContract,
-} from "wagmi";
+import { useMemo, useState } from "react";
+import { useAccount, useSignTypedData } from "wagmi";
 
-import { postToRelay, randomNonce, relayDomain } from "@/lib/relayClient";
+import { postToRelay, randomNonce, relayDomain, signatureDeadline } from "@/lib/relayClient";
 import { useMyIdentity } from "@/lib/useMyIdentity";
 import { useRelaySnapshot } from "@/lib/useRelaySnapshot";
 
@@ -21,7 +15,6 @@ const FOUNDER_PASSPORT_ADDRESS = process.env.NEXT_PUBLIC_FOUNDER_PASSPORT_ADDRES
 
 function RegisterProjectForm() {
   const { address } = useAccount();
-  const chainId = useChainId();
   const { signTypedDataAsync } = useSignTypedData();
   const queryClient = useQueryClient();
 
@@ -43,15 +36,17 @@ function RegisterProjectForm() {
         setIsSubmitting(true);
         try {
           const nonce = randomNonce();
+          const deadline = signatureDeadline();
           const message = {
             wallet: address,
             name,
             shortDesc,
             greenfieldURI,
             nonce,
+            deadline,
           } as const;
           const signature = await signTypedDataAsync({
-            domain: relayDomain(chainId, FOUNDER_PASSPORT_ADDRESS),
+            domain: relayDomain(FOUNDER_PASSPORT_ADDRESS),
             types: RELAY_ACTION_TYPES.RegisterProject,
             primaryType: "RegisterProject",
             message,
@@ -62,6 +57,7 @@ function RegisterProjectForm() {
             shortDesc,
             greenfieldURI,
             nonce: nonce.toString(),
+            deadline: deadline.toString(),
             signature,
           });
           await queryClient.invalidateQueries({ queryKey: ["relay-snapshot"] });
@@ -114,25 +110,27 @@ function RegisterProjectForm() {
   );
 }
 
-function AddTeamMemberForm({
+/**
+ * Invites a teammate — it does not add them. Membership needs the invitee's own acceptance
+ * (see PendingInvitesCard), so nobody ends up listed on a project they never agreed to join.
+ *
+ * Gasless like every other write. This used to be the one flow that demanded the attendee hold
+ * testnet BNB, which stopped the project lead dead in the middle of the demo.
+ */
+function InviteTeamMemberForm({
   projectId,
   candidates,
 }: {
   projectId: string;
   candidates: { identityId: string; displayName: string }[];
 }) {
+  const { address } = useAccount();
   const queryClient = useQueryClient();
   const [memberId, setMemberId] = useState("");
-  const { writeContractAsync, isPending } = useWriteContract();
-  const [txHash, setTxHash] = useState<`0x${string}` | undefined>();
+  const { signTypedDataAsync } = useSignTypedData();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | undefined>();
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
-
-  useEffect(() => {
-    if (isSuccess) {
-      void queryClient.invalidateQueries({ queryKey: ["relay-snapshot"] });
-    }
-  }, [isSuccess, queryClient]);
+  const [invitedName, setInvitedName] = useState<string | undefined>();
 
   if (!FOUNDER_PASSPORT_ADDRESS || candidates.length === 0) return null;
 
@@ -141,23 +139,44 @@ function AddTeamMemberForm({
       className="field"
       onSubmit={async (event) => {
         event.preventDefault();
-        if (!memberId) return;
+        if (!address || !memberId) return;
         setSubmitError(undefined);
+        setIsSubmitting(true);
         try {
-          const hash = await writeContractAsync({
-            address: FOUNDER_PASSPORT_ADDRESS,
-            abi: founderPassportAbi,
-            functionName: "addTeamMember",
-            args: [BigInt(projectId), BigInt(memberId)],
+          const nonce = randomNonce();
+          const deadline = signatureDeadline();
+          const message = {
+            wallet: address,
+            projectId: BigInt(projectId),
+            toIdentityId: BigInt(memberId),
+            nonce,
+            deadline,
+          } as const;
+          const signature = await signTypedDataAsync({
+            domain: relayDomain(FOUNDER_PASSPORT_ADDRESS),
+            types: RELAY_ACTION_TYPES.InviteTeamMember,
+            primaryType: "InviteTeamMember",
+            message,
           });
-          setTxHash(hash);
+          await postToRelay("/invite-team-member", {
+            wallet: address,
+            projectId,
+            toIdentityId: memberId,
+            nonce: nonce.toString(),
+            deadline: deadline.toString(),
+            signature,
+          });
+          setInvitedName(candidates.find((c) => c.identityId === memberId)?.displayName);
           setMemberId("");
+          await queryClient.invalidateQueries({ queryKey: ["relay-snapshot"] });
         } catch (error) {
-          setSubmitError(error instanceof Error ? error.message : "No se pudo agregar");
+          setSubmitError(error instanceof Error ? error.message : "No se pudo invitar");
+        } finally {
+          setIsSubmitting(false);
         }
       }}
     >
-      <label htmlFor="teamMember">Agregar miembro de equipo</label>
+      <label htmlFor="teamMember">Invitar al equipo</label>
       <select id="teamMember" value={memberId} onChange={(event) => setMemberId(event.target.value)} required>
         <option value="" disabled>
           Elige a un asistente
@@ -168,11 +187,94 @@ function AddTeamMemberForm({
           </option>
         ))}
       </select>
-      <button type="submit" disabled={isPending || isConfirming || !memberId}>
-        {isPending || isConfirming ? "Agregando…" : "Agregar (requiere gas de tu wallet)"}
+      <button type="submit" disabled={isSubmitting || !memberId}>
+        {isSubmitting ? "Invitando…" : "Enviar invitación"}
       </button>
-      {submitError && <p className="muted">No se pudo agregar: {submitError}</p>}
+      {invitedName && (
+        <p className="muted" role="status">
+          Invitación enviada a {invitedName}. Se sumará al equipo cuando la acepte.
+        </p>
+      )}
+      {submitError && (
+        <p className="muted" role="alert">
+          No se pudo invitar: {submitError}
+        </p>
+      )}
     </form>
+  );
+}
+
+/** The consent step: only the invitee can put themselves on a team. Gasless. */
+function PendingInvitesCard({
+  myIdentityId,
+  invites,
+}: {
+  myIdentityId: string;
+  invites: { projectId: string; name: string }[];
+}) {
+  const { address } = useAccount();
+  const queryClient = useQueryClient();
+  const { signTypedDataAsync } = useSignTypedData();
+  const [pendingId, setPendingId] = useState<string | undefined>();
+  const [submitError, setSubmitError] = useState<string | undefined>();
+
+  if (!FOUNDER_PASSPORT_ADDRESS || invites.length === 0) return null;
+
+  // An arrow function bound to `const`, not a hoisted function declaration: TS only retains the
+  // guard clause's narrowing of the module-level FOUNDER_PASSPORT_ADDRESS across a closure when
+  // it can prove the closure isn't reachable before the narrowing takes effect.
+  const accept = async (projectId: string) => {
+    if (!address) return;
+    setSubmitError(undefined);
+    setPendingId(projectId);
+    try {
+      const nonce = randomNonce();
+      const deadline = signatureDeadline();
+      const signature = await signTypedDataAsync({
+        domain: relayDomain(FOUNDER_PASSPORT_ADDRESS),
+        types: RELAY_ACTION_TYPES.AcceptTeamInvite,
+        primaryType: "AcceptTeamInvite",
+        message: { wallet: address, projectId: BigInt(projectId), nonce, deadline } as const,
+      });
+      await postToRelay("/accept-team-invite", {
+        wallet: address,
+        projectId,
+        nonce: nonce.toString(),
+        deadline: deadline.toString(),
+        signature,
+      });
+      await queryClient.invalidateQueries({ queryKey: ["relay-snapshot"] });
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : "No se pudo aceptar");
+    } finally {
+      setPendingId(undefined);
+    }
+  };
+
+  return (
+    <div className="card">
+      <span className="eyebrow">Invitaciones</span>
+      <h2>Te invitaron a un equipo</h2>
+      <p className="muted">Solo apareces en un proyecto si tú lo aceptas.</p>
+      {invites.map((invite) => (
+        <div key={invite.projectId} className="field">
+          <span className="name">{invite.name}</span>
+          <button
+            type="button"
+            onClick={() => void accept(invite.projectId)}
+            disabled={pendingId !== undefined}
+            aria-busy={pendingId === invite.projectId}
+          >
+            {pendingId === invite.projectId ? "Aceptando…" : "Unirme a este equipo"}
+          </button>
+        </div>
+      ))}
+      {submitError && (
+        <p className="muted" role="alert">
+          {submitError}
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -186,7 +288,6 @@ function EndorseBuilderForm({
   nodesById: Map<string, string>;
 }) {
   const { address } = useAccount();
-  const chainId = useChainId();
   const { signTypedDataAsync } = useSignTypedData();
   const queryClient = useQueryClient();
 
@@ -211,15 +312,17 @@ function EndorseBuilderForm({
         setIsSubmitting(true);
         try {
           const nonce = randomNonce();
+          const deadline = signatureDeadline();
           const message = {
             wallet: address,
             projectId: BigInt(projectId),
             toIdentityId: BigInt(toIdentityId),
             skillTag,
             nonce,
+            deadline,
           } as const;
           const signature = await signTypedDataAsync({
-            domain: relayDomain(chainId, FOUNDER_PASSPORT_ADDRESS),
+            domain: relayDomain(FOUNDER_PASSPORT_ADDRESS),
             types: RELAY_ACTION_TYPES.EndorseBuilder,
             primaryType: "EndorseBuilder",
             message,
@@ -230,6 +333,7 @@ function EndorseBuilderForm({
             toIdentityId,
             skillTag,
             nonce: nonce.toString(),
+            deadline: deadline.toString(),
             signature,
           });
           setToIdentityId("");
@@ -321,14 +425,27 @@ export function FounderPassportCard() {
   const myProject = snapshot.projects.find((project) => project.leadIdentityId === myIdentityId);
   const otherProjects = snapshot.projects.filter((project) => project.teamMemberIds.length > 0);
 
+  // Skip anyone already on the team or with an invite in flight, so the lead can't re-invite
+  // (which the contract rejects) and can't invite an existing member.
   const teamCandidates = myProject
     ? snapshot.nodes
-        .filter((node) => !myProject.teamMemberIds.includes(node.identityId))
+        .filter(
+          (node) =>
+            !myProject.teamMemberIds.includes(node.identityId) &&
+            !myProject.invitedIdentityIds.includes(node.identityId),
+        )
         .map((node) => ({ identityId: node.identityId, displayName: node.displayName }))
     : [];
 
+  const myInvites = snapshot.projects
+    .filter((project) => project.invitedIdentityIds.includes(myIdentityId))
+    .map((project) => ({ projectId: project.projectId, name: project.name }));
+
+  const pendingInviteNames = (myProject?.invitedIdentityIds ?? []).map((id) => nodesById.get(id) ?? id);
+
   return (
     <>
+      <PendingInvitesCard myIdentityId={myIdentityId} invites={myInvites} />
       {myProject ? (
         <div className="card">
           <span className="eyebrow">Founder passport</span>
@@ -337,8 +454,11 @@ export function FounderPassportCard() {
           <p className="muted">
             Equipo: {myProject.teamMemberIds.map((id) => nodesById.get(id) ?? id).join(", ")}
           </p>
+          {pendingInviteNames.length > 0 && (
+            <p className="muted">Invitaciones pendientes: {pendingInviteNames.join(", ")}</p>
+          )}
           <p className="muted">Endosos de skills: {myProject.endorsementCount}</p>
-          <AddTeamMemberForm projectId={myProject.projectId} candidates={teamCandidates} />
+          <InviteTeamMemberForm projectId={myProject.projectId} candidates={teamCandidates} />
         </div>
       ) : (
         <RegisterProjectForm />

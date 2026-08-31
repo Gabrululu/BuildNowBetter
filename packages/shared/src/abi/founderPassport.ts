@@ -1,8 +1,7 @@
 /**
  * Hand-written subset of the FounderPassport ABI — just enough for the relay to submit gasless
- * `*For()` calls and watch its events, and for the frontend to call `addTeamMember` directly
- * (it has no gasless entrypoint — only the project lead may call it, self-serve only). Replace
- * with the generated artifact once the contracts build pipeline is wired up.
+ * `*For()` calls and watch its events, plus the reads the frontend needs. Replace with the
+ * generated artifact once the contracts build pipeline is wired up.
  */
 export const founderPassportAbi = [
   {
@@ -25,18 +24,75 @@ export const founderPassportAbi = [
       { name: "name", type: "string" },
       { name: "shortDesc", type: "string" },
       { name: "greenfieldURI", type: "string" },
+      { name: "nonce", type: "uint256" },
+      { name: "deadline", type: "uint256" },
+      { name: "signature", type: "bytes" },
     ],
     outputs: [{ name: "", type: "uint256" }],
   },
   {
     type: "function",
-    name: "addTeamMember",
+    name: "inviteTeamMemberFor",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "wallet", type: "address" },
+      { name: "projectId", type: "uint256" },
+      { name: "toIdentityId", type: "uint256" },
+      { name: "nonce", type: "uint256" },
+      { name: "deadline", type: "uint256" },
+      { name: "signature", type: "bytes" },
+    ],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "acceptTeamInviteFor",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "wallet", type: "address" },
+      { name: "projectId", type: "uint256" },
+      { name: "nonce", type: "uint256" },
+      { name: "deadline", type: "uint256" },
+      { name: "signature", type: "bytes" },
+    ],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "declineTeamInvite",
+    stateMutability: "nonpayable",
+    inputs: [{ name: "projectId", type: "uint256" }],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "removeTeamMember",
     stateMutability: "nonpayable",
     inputs: [
       { name: "projectId", type: "uint256" },
       { name: "identityId", type: "uint256" },
     ],
     outputs: [],
+  },
+  {
+    type: "function",
+    name: "isTeamMember",
+    stateMutability: "view",
+    inputs: [
+      { name: "projectId", type: "uint256" },
+      { name: "identityId", type: "uint256" },
+    ],
+    outputs: [{ name: "", type: "bool" }],
+  },
+  {
+    type: "function",
+    name: "isInvited",
+    stateMutability: "view",
+    inputs: [
+      { name: "projectId", type: "uint256" },
+      { name: "identityId", type: "uint256" },
+    ],
+    outputs: [{ name: "", type: "bool" }],
   },
   {
     type: "function",
@@ -58,6 +114,9 @@ export const founderPassportAbi = [
       { name: "projectId", type: "uint256" },
       { name: "toIdentityId", type: "uint256" },
       { name: "skillTag", type: "string" },
+      { name: "nonce", type: "uint256" },
+      { name: "deadline", type: "uint256" },
+      { name: "signature", type: "bytes" },
     ],
     outputs: [],
   },
@@ -97,6 +156,33 @@ export const founderPassportAbi = [
       { name: "shortDesc", type: "string", indexed: false },
       { name: "greenfieldURI", type: "string", indexed: false },
       { name: "timestamp", type: "uint256", indexed: false },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "TeamMemberInvited",
+    inputs: [
+      { name: "projectId", type: "uint256", indexed: true },
+      { name: "identityId", type: "uint256", indexed: true },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "TeamInviteDeclined",
+    inputs: [
+      { name: "projectId", type: "uint256", indexed: true },
+      { name: "identityId", type: "uint256", indexed: true },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "TeamMemberRemoved",
+    inputs: [
+      { name: "projectId", type: "uint256", indexed: true },
+      { name: "identityId", type: "uint256", indexed: true },
     ],
     anonymous: false,
   },

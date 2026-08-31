@@ -37,8 +37,30 @@ pnpm dev
 `frontend`/`screen` no tienen tests todavía. El mismo comando corre en CI (`.github/workflows/ci.yml`)
 en cada push/PR a `main`, junto con `pnpm build`.
 
+Los tests de `relay` cubren el borde de seguridad en `src/routes/relay.test.ts`: verificación de
+firma EIP-712, que el rate-limit se aplique **después** de verificar (si no, cualquiera bloquea a
+cualquier wallet con POSTs sin firma), y que todo fallo salga como JSON y nunca como stack trace.
+
 Cada app tiene un `.env.example` — copiar a `.env` y completar antes de correr `pnpm dev` o
 desplegar a testnet.
+
+## ⚠️ Los contratos requieren redespliegue
+
+Las firmas EIP-712 ahora se verifican on-chain: los seis entrypoints `*For(...)` reciben `nonce`,
+`deadline` y `signature` (ver [`docs/architecture.md`](docs/architecture.md#onboarding-sin-gas)).
+`FounderPassport` además reemplazó `addTeamMember` (unilateral, sin gasless) por
+`inviteTeamMember`/`acceptTeamInvite` (consentimiento, ambos gasless), y agregó topes de longitud
+y validación de equipo en `endorseBuilder`. Todo eso cambia los ABIs, así que **las direcciones en
+`packages/shared/src/constants/testnet.json` son de la versión anterior y son incompatibles** con
+este código.
+
+```bash
+RELAY_ADDRESS=0x... pnpm --filter contracts deploy:testnet
+```
+
+`deploy-all.ts` ahora cablea el relay durante el despliegue (antes había que correr `set-relay` a
+mano, y hasta entonces todo el flujo gasless revertía) y escribe `startBlock` en
+`testnet.json` — ese es el valor para `RELAY_START_BLOCK`.
 
 ## Despliegue
 
@@ -62,9 +84,17 @@ separados apuntando al mismo repo.
 - **Start Command:** `node apps/relay/dist/index.js`
 - **Variables de entorno:** `PORT`, `CORS_ORIGIN` (lista separada por comas de orígenes
   permitidos — hoy los dominios de `frontend` y `screen` en Vercel), `BSC_TESTNET_RPC_URL`,
-  `IDENTITY_REGISTRY_ADDRESS`, `SOCIAL_GRAPH_ADDRESS`, `REPUTATION_PASSPORT_ADDRESS`,
-  `FOUNDER_PASSPORT_ADDRESS`, `RELAY_HOT_WALLET_PRIVATE_KEY` (hot wallet testnet, rotar antes de
-  cualquier evento real).
+  `RELAY_START_BLOCK`, `IDENTITY_REGISTRY_ADDRESS`, `SOCIAL_GRAPH_ADDRESS`,
+  `REPUTATION_PASSPORT_ADDRESS`, `FOUNDER_PASSPORT_ADDRESS`, `RELAY_HOT_WALLET_PRIVATE_KEY`
+  (hot wallet testnet, rotar antes de cualquier evento real).
+- **El RPC debe servir `eth_getLogs`.** El relay reconstruye su estado desde los logs de la cadena
+  al arrancar, así que un reinicio a mitad del workshop no borra el leaderboard. Los endpoints
+  `data-seed-prebsc-*.binance.org` responden `limit exceeded` a *cualquier* `eth_getLogs` (incluso
+  de un solo bloque) aunque sí sirven `eth_newFilter`: con ellos el relay arranca, avisa por log y
+  degrada a solo-eventos-en-vivo. Usar `https://bsc-testnet-rpc.publicnode.com` o similar.
+- **`RELAY_START_BLOCK`** = head de la cadena al empezar el evento, *no* el bloque de despliegue.
+  BSC testnet produce ~1,3M de bloques por semana y los RPC públicos podan los logs viejos, así que
+  un replay profundo no es ni rápido ni posible.
 
 ### frontend / screen (Vercel)
 

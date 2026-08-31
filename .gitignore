@@ -11,3 +11,4 @@ typechain-types/
 .env.local
 .turbo/
 .DS_Store
+*.tsbuildinfo

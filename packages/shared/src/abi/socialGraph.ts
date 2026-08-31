@@ -18,6 +18,9 @@ export const socialGraphAbi = [
     inputs: [
       { name: "wallet", type: "address" },
       { name: "toIdentityId", type: "uint256" },
+      { name: "nonce", type: "uint256" },
+      { name: "deadline", type: "uint256" },
+      { name: "signature", type: "bytes" },
     ],
     outputs: [],
   },

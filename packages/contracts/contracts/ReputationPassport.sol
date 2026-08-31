@@ -36,6 +36,7 @@ contract ReputationPassport is Organized {
     }
 
     constructor(address _identityRegistry, address _organizer) Organized(_organizer) {
+        require(_identityRegistry != address(0), "ReputationPassport: zero registry");
         identityRegistry = IIdentityRegistry(_identityRegistry);
     }
 

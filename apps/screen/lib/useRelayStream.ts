@@ -46,6 +46,7 @@ const PLACEHOLDER_STATE: RelayState = {
       shortDesc: "Grafo social en vivo para hackathons.",
       greenfieldURI: "",
       teamMemberIds: ["3", "1"],
+      invitedIdentityIds: [],
       endorsementCount: 4,
     },
   ],

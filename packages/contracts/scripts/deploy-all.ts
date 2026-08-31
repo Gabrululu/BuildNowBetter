@@ -30,11 +30,36 @@ async function main() {
   const founderPassport = await viem.deployContract("FounderPassport", [identityRegistry.address, organizer]);
   console.log(`FounderPassport deployed to: ${founderPassport.address}`);
 
+  // Without this the `relay` address is 0x0 and every gasless path reverts, which used to mean a
+  // fresh deploy looked fine until the first attendee tried to register.
+  const relayAddress = process.env.RELAY_ADDRESS?.trim();
+  const gaslessContracts = [
+    ["IdentityRegistry", identityRegistry],
+    ["SocialGraph", socialGraph],
+    ["FounderPassport", founderPassport],
+  ] as const;
+
+  if (relayAddress) {
+    for (const [name, contract] of gaslessContracts) {
+      await contract.write.setRelay([relayAddress as `0x${string}`], { account: organizer });
+      console.log(`${name}: relay set to ${relayAddress}`);
+    }
+  } else {
+    console.warn(
+      "RELAY_ADDRESS not set — the gasless *For() paths will revert until you run `pnpm set-relay`.",
+    );
+  }
+
+  // The relay replays chain history from here on boot; see RELAY_START_BLOCK in apps/relay.
+  const startBlock = await publicClient.getBlockNumber();
+
   const output = {
     network: networkName,
     chainId,
     organizer,
     deployedAt: new Date().toISOString(),
+    startBlock: Number(startBlock),
+    relay: relayAddress ?? null,
     contracts: {
       IdentityRegistry: identityRegistry.address,
       SocialGraph: socialGraph.address,

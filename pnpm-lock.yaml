@@ -125,12 +125,18 @@ importers:
 
   packages/contracts:
     devDependencies:
+      '@buildnowbetter/shared':
+        specifier: workspace:*
+        version: link:../shared
       '@nomicfoundation/hardhat-toolbox-viem':
         specifier: 5.0.7
         version: 5.0.7(b3fogb7vwcyxlj4p223shfkq3u)
       '@nomicfoundation/hardhat-viem-assertions':
         specifier: 3.1.2
         version: 3.1.2(@nomicfoundation/hardhat-viem@3.0.9(hardhat@3.12.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))(viem@2.55.10(bufferutil@4.1.0)(typescript@6.0.3)(utf-8-validate@5.0.10)(zod@3.25.76)))(hardhat@3.12.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))(viem@2.55.10(bufferutil@4.1.0)(typescript@6.0.3)(utf-8-validate@5.0.10)(zod@3.25.76))
+      '@openzeppelin/contracts':
+        specifier: ^5.6.1
+        version: 5.6.1
       '@types/node':
         specifier: ^22.8.5
         version: 22.20.1
@@ -961,6 +967,9 @@ packages:
   '@nomicfoundation/solidity-analyzer@0.1.2':
     resolution: {integrity: sha512-q4n32/FNKIhQ3zQGGw5CvPF6GTvDCpYwIf7bEY/dZTZbgfDsHyjJwURxUJf3VQuuJj+fDIFl4+KkBVbw4Ef6jA==}
     engines: {node: '>= 12'}
+
+  '@openzeppelin/contracts@5.6.1':
+    resolution: {integrity: sha512-Ly6SlsVJ3mj+b18W3R8gNufB7dTICT105fJhodGAGgyC2oqnBAhqSiNDJ8V8DLY05cCz81GLI0CU5vNYA1EC/w==}
 
   '@paulmillr/qr@0.2.1':
     resolution: {integrity: sha512-IHnV6A+zxU7XwmKFinmYjUcwlyK9+xkG3/s9KcQhI9BjQKycrJ1JRO+FbNYPwZiPKW3je/DR0k7w8/gLa5eaxQ==}
@@ -4773,6 +4782,8 @@ snapshots:
       '@nomicfoundation/solidity-analyzer-linux-x64-gnu': 0.1.2
       '@nomicfoundation/solidity-analyzer-linux-x64-musl': 0.1.2
       '@nomicfoundation/solidity-analyzer-win32-x64-msvc': 0.1.2
+
+  '@openzeppelin/contracts@5.6.1': {}
 
   '@paulmillr/qr@0.2.1': {}
 

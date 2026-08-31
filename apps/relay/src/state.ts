@@ -25,15 +25,20 @@ interface ProjectRecord {
   shortDesc: string;
   greenfieldURI: string;
   teamMemberIds: string[];
+  /** Invited but not yet accepted — joining a team is the invitee's own decision. */
+  invitedIdentityIds: string[];
   endorsementCount: number;
 }
 
 /**
  * Single in-memory source of truth for the big screen + leaderboard, fed by chainWatcher's
- * event subscriptions. Deliberately not a database — this process IS the canonical live state
- * for the duration of the workshop; a restart means re-backfilling from chain logs.
+ * event subscriptions. Deliberately not a database — the chain is the persistence layer, and a
+ * restart replays history from chain logs (see chainWatcher's `backfill`).
+ *
+ * The counter methods here are unguarded increments; chainWatcher is responsible for never
+ * delivering the same log twice.
  */
-class RelayState {
+export class RelayState {
   private identities = new Map<string, IdentityRecord>();
   private edges: GraphEdge[] = [];
   private projects = new Map<string, ProjectRecord>();
@@ -86,6 +91,7 @@ class RelayState {
       shortDesc,
       greenfieldURI,
       teamMemberIds: [],
+      invitedIdentityIds: [],
       endorsementCount: 0,
     });
     this.publish();
@@ -95,6 +101,31 @@ class RelayState {
     const project = this.projects.get(projectId);
     if (!project || project.teamMemberIds.includes(identityId)) return;
     project.teamMemberIds.push(identityId);
+    // Accepting supersedes the invite; drop it so the invitee's pending list clears.
+    project.invitedIdentityIds = project.invitedIdentityIds.filter((id) => id !== identityId);
+    this.publish();
+  }
+
+  removeTeamMember(projectId: string, identityId: string): void {
+    const project = this.projects.get(projectId);
+    if (!project || !project.teamMemberIds.includes(identityId)) return;
+    project.teamMemberIds = project.teamMemberIds.filter((id) => id !== identityId);
+    this.publish();
+  }
+
+  inviteTeamMember(projectId: string, identityId: string): void {
+    const project = this.projects.get(projectId);
+    if (!project) return;
+    if (project.teamMemberIds.includes(identityId)) return;
+    if (project.invitedIdentityIds.includes(identityId)) return;
+    project.invitedIdentityIds.push(identityId);
+    this.publish();
+  }
+
+  declineTeamInvite(projectId: string, identityId: string): void {
+    const project = this.projects.get(projectId);
+    if (!project || !project.invitedIdentityIds.includes(identityId)) return;
+    project.invitedIdentityIds = project.invitedIdentityIds.filter((id) => id !== identityId);
     this.publish();
   }
 

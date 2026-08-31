@@ -1,16 +1,11 @@
 "use client";
 
-import { RELAY_ACTION_TYPES, identityRegistryAbi } from "@buildnowbetter/shared";
+import { RELAY_ACTION_TYPES } from "@buildnowbetter/shared";
 import { useEffect, useState } from "react";
-import {
-  useAccount,
-  useChainId,
-  useReadContract,
-  useSignTypedData,
-  useWaitForTransactionReceipt,
-} from "wagmi";
+import { useAccount, useSignTypedData, useWaitForTransactionReceipt } from "wagmi";
 
-import { postToRelay, randomNonce, relayDomain } from "@/lib/relayClient";
+import { postToRelay, randomNonce, relayDomain, signatureDeadline } from "@/lib/relayClient";
+import { useMyIdentity } from "@/lib/useMyIdentity";
 
 const IDENTITY_REGISTRY_ADDRESS = process.env.NEXT_PUBLIC_IDENTITY_REGISTRY_ADDRESS as
   | `0x${string}`
@@ -18,23 +13,17 @@ const IDENTITY_REGISTRY_ADDRESS = process.env.NEXT_PUBLIC_IDENTITY_REGISTRY_ADDR
 
 export function RegisterIdentityCard() {
   const { address } = useAccount();
-  const chainId = useChainId();
   const [displayName, setDisplayName] = useState("");
   const [txHash, setTxHash] = useState<`0x${string}` | undefined>();
   const [submitError, setSubmitError] = useState<string | undefined>();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const {
-    data: isRegistered,
-    refetch,
-    isLoading: isCheckingRegistration,
-  } = useReadContract({
-    address: IDENTITY_REGISTRY_ADDRESS,
-    abi: identityRegistryAbi,
-    functionName: "isRegistered",
-    args: address ? [address] : undefined,
-    query: { enabled: Boolean(address && IDENTITY_REGISTRY_ADDRESS) },
-  });
+  // Deliberately the same hook EndorseCard and FounderPassportCard use, so all three read one
+  // shared react-query entry. This card used to own a separate `isRegistered` read and refetch
+  // only that: the attendee saw "Identidad registrada ✓" while the endorse and passport cards
+  // stayed hidden until a manual page reload, because nothing invalidated `getIdentityId`.
+  const { identityId, isLoading: isCheckingRegistration, refetch } = useMyIdentity();
+  const isRegistered = Boolean(identityId);
 
   const { signTypedDataAsync } = useSignTypedData();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
@@ -87,14 +76,16 @@ export function RegisterIdentityCard() {
         setIsSubmitting(true);
         try {
           const nonce = randomNonce();
+          const deadline = signatureDeadline();
           const message = {
             wallet: address,
             displayName,
             metadataURI: "",
             nonce,
+            deadline,
           } as const;
           const signature = await signTypedDataAsync({
-            domain: relayDomain(chainId, IDENTITY_REGISTRY_ADDRESS),
+            domain: relayDomain(IDENTITY_REGISTRY_ADDRESS),
             types: RELAY_ACTION_TYPES.RegisterIdentity,
             primaryType: "RegisterIdentity",
             message,
@@ -104,6 +95,7 @@ export function RegisterIdentityCard() {
             displayName,
             metadataURI: "",
             nonce: nonce.toString(),
+            deadline: deadline.toString(),
             signature,
           });
           setTxHash(hash);
