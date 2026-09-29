@@ -32,7 +32,7 @@ de layouts.
 
 ## Empezar
 
-Requiere pnpm 9+ y Node 20+.
+Requiere pnpm 9+ y Node 22.13+ (Hardhat 3 no corre sobre Node 20).
 
 ```bash
 pnpm install

@@ -5,7 +5,7 @@
   "description": "BuildNowBetter — Grafo de Reputacion en Vivo. DeSoc live-workshop demo for BNB AI Hack.",
   "packageManager": "pnpm@9.15.0",
   "engines": {
-    "node": ">=20"
+    "node": ">=22.13.0"
   },
   "scripts": {
     "build": "turbo run build",
