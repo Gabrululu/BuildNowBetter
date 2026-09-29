@@ -1,10 +1,13 @@
 :root {
   color-scheme: dark;
-  --bg: #05070a;
-  --surface: #10141c;
-  --text: #f4f6fb;
-  --muted: #9aa4b2;
+  --bg: #050505;
+  --surface: #0d0d0d;
+  --border: #232323;
+  --text: #f4f3ee;
+  --muted: #8f8f8a;
   --accent: #5eead4;
+  --font-sans: var(--font-inter), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
 }
 
 * {
@@ -15,7 +18,8 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
 }
 
 main {
@@ -26,24 +30,48 @@ main {
 
 header {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   justify-content: space-between;
   padding: 1.5rem 2.5rem;
-  border-bottom: 1px solid #1c2330;
+  border-bottom: 1px solid var(--border);
 }
 
 header h1 {
   font-size: clamp(1.5rem, 2.5vw, 2.5rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
   margin: 0;
 }
 
 .status {
-  font-size: 1.25rem;
-  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: clamp(0.85rem, 1vw, 1rem);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.4rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+.status::before {
+  content: "";
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: currentcolor;
 }
 
 .status.live {
   color: var(--accent);
+  border-color: rgba(94, 234, 212, 0.35);
+}
+
+.status.live::before {
+  box-shadow: 0 0 0.6rem rgba(94, 234, 212, 0.8);
 }
 
 .status.offline {
@@ -59,11 +87,28 @@ header h1 {
 
 .graph-panel {
   position: relative;
+  min-width: 0;
   min-height: 0;
 }
 
+/* Overlay label only — never affects box size, so react-force-graph-2d's ResizeObserver still
+   measures .graph-panel's full content box for the canvas. */
+.graph-panel::before {
+  content: "01 / Grafo en vivo";
+  position: absolute;
+  top: 1.25rem;
+  left: 1.75rem;
+  z-index: 1;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  pointer-events: none;
+}
+
 .sidebar {
-  border-left: 1px solid #1c2330;
+  border-left: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -78,13 +123,35 @@ header h1 {
 }
 
 .projects-panel {
-  border-top: 1px solid #1c2330;
+  border-top: 1px solid var(--border);
 }
 
 .leaderboard h2,
 .projects-panel h2 {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
   font-size: clamp(1.25rem, 2vw, 1.75rem);
+  font-weight: 700;
+  letter-spacing: -0.01em;
   margin-top: 0;
+}
+
+.leaderboard h2::before {
+  content: "02 /";
+}
+
+.projects-panel h2::before {
+  content: "03 /";
+}
+
+.leaderboard h2::before,
+.projects-panel h2::before {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  color: var(--muted);
 }
 
 .leaderboard ol {
@@ -101,7 +168,7 @@ header h1 {
   justify-content: space-between;
   align-items: baseline;
   font-size: clamp(1.1rem, 1.6vw, 1.5rem);
-  border-bottom: 1px solid #1c2330;
+  border-bottom: 1px solid var(--border);
   padding-bottom: 0.75rem;
 }
 
@@ -129,7 +196,7 @@ header h1 {
 }
 
 .projects-panel li {
-  border-bottom: 1px solid #1c2330;
+  border-bottom: 1px solid var(--border);
   padding-bottom: 1rem;
 }
 
