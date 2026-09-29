@@ -40,8 +40,8 @@ ajustables desde `packages/shared/src/badgeWeights.ts` sin tocar ningún contrat
 
 `apps/relay` mantiene una única suscripción a los eventos on-chain (`IdentityRegistered`,
 `Endorsed`, `BadgeMinted`) y agrega estado en memoria, publicado por Server-Sent Events en
-`/stream` (con `/snapshot` para clientes que se conectan tarde). `apps/screen` y cualquier vista
-espectador consumen ese stream — nunca abren su propia suscripción RPC.
+`/stream` (con `/snapshot` para clientes que se conectan tarde). La ruta `/screen` de `apps/frontend`
+y cualquier vista espectador consumen ese stream — nunca abren su propia suscripción RPC.
 
 ## Onboarding sin gas
 
@@ -94,8 +94,9 @@ el presupuesto de 30 segundos de onboarding.
 
 ```
 apps/
-  frontend/   Next.js — conexión wallet, registro de identidad, fallback espectador
-  screen/     Next.js — grafo (react-force-graph-2d) + leaderboard, consumidor SSE
+  frontend/   Next.js — un solo despliegue:
+                /        conexión wallet, registro de identidad, fallback espectador
+                /screen  grafo (react-force-graph-2d) + leaderboard, consumidor SSE
   relay/      Node/Express — estado en memoria, SSE fanout, endpoints gasless
 packages/
   contracts/  Hardhat (viem) — los cuatro contratos + tests + script de deploy
@@ -108,7 +109,7 @@ packages/
 2. Deploy a BSC Testnet, verificar en BscScan, escribir direcciones a `packages/shared`.
 3. Wallet-connect + mint de identidad directo (sin relay), validar flujo <30s.
 4. Grafo social en vivo consumiendo eventos on-chain directamente.
-5. `apps/relay` de verdad conectado; screen/leaderboard sobre SSE.
+5. `apps/relay` de verdad conectado; `/screen`/leaderboard sobre SSE.
 6. Badges + leaderboard con pesos configurables, tamaño de nodo ligado a score.
 7. Founder passport + Greenfield.
 8. Relayer gasless reemplazando el flujo de gas directo; fallback espectador.

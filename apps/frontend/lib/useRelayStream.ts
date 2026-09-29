@@ -17,7 +17,7 @@ export interface RelayState extends RelaySnapshot {
 const RELAY_URL = process.env.NEXT_PUBLIC_RELAY_URL ?? "http://localhost:4000";
 
 /**
- * Placeholder demo data so `pnpm --filter screen dev` renders something meaningful even before
+ * Placeholder demo data so the `/screen` route renders something meaningful even before
  * apps/relay (or a real testnet deployment) is up and running.
  */
 const PLACEHOLDER_STATE: RelayState = {

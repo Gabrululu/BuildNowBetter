@@ -1,8 +1,8 @@
 "use client";
 
-import { Leaderboard } from "@/components/Leaderboard";
-import { LiveGraph } from "@/components/LiveGraph";
-import { ProjectsPanel } from "@/components/ProjectsPanel";
+import { Leaderboard } from "@/components/screen/Leaderboard";
+import { LiveGraph } from "@/components/screen/LiveGraph";
+import { ProjectsPanel } from "@/components/screen/ProjectsPanel";
 import { useRelayStream } from "@/lib/useRelayStream";
 
 export default function ScreenPage() {

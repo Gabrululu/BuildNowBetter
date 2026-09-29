@@ -15,13 +15,20 @@ para el detalle completo.
 
 ```
 apps/
-  frontend/   App de asistente (Next.js) — conexión wallet, endosos, fallback espectador
-  screen/     Pantalla grande (Next.js) — grafo en vivo + leaderboard
+  frontend/   Next.js — un solo despliegue con dos route groups:
+                `/`       app de asistente — conexión wallet, endosos, fallback espectador
+                `/screen` pantalla grande — grafo en vivo + leaderboard
   relay/      Servidor de estado en vivo (Node/Express) — SSE + relay gasless
 packages/
   contracts/  Contratos Solidity (Hardhat + viem) — BSC Testnet
   shared/     ABIs, tipos, schemas y configuración compartida
 ```
+
+`/` y `/screen` son cada uno su propio "root layout" de Next.js (patrón de
+[multiple root layouts](https://nextjs.org/docs/app/building-your-application/routing/route-groups#creating-multiple-root-layouts)):
+no comparten `<html>`/`<body>`, CSS ni providers, así que WagmiProvider/RainbowKit (que solo usa
+`/`) nunca se empaqueta en el bundle de `/screen` — cada ruta solo carga el JS de su propio árbol
+de layouts.
 
 ## Empezar
 
@@ -34,7 +41,7 @@ pnpm dev
 ```
 
 `pnpm test` corre los tests de contratos (Hardhat), `shared` y `relay` (Vitest) vía Turborepo;
-`frontend`/`screen` no tienen tests todavía. El mismo comando corre en CI (`.github/workflows/ci.yml`)
+`frontend` no tiene tests todavía. El mismo comando corre en CI (`.github/workflows/ci.yml`)
 en cada push/PR a `main`, junto con `pnpm build`.
 
 Los tests de `relay` cubren el borde de seguridad en `src/routes/relay.test.ts`: verificación de
@@ -65,14 +72,13 @@ mano, y hasta entonces todo el flujo gasless revertía) y escribe `startBlock` e
 ## Despliegue
 
 `relay` es un proceso persistente (SSE + chain watcher) y no corre en serverless — va en
-Railway. `frontend` y `screen` son Next.js normales — van en Vercel, como dos proyectos
-separados apuntando al mismo repo.
+Railway. `frontend` es un Next.js normal — un solo proyecto en Vercel sirve tanto la app de
+asistente (`/`) como la pantalla grande (`/screen`).
 
 | App      | Proveedor | URL                                              |
 |----------|-----------|---------------------------------------------------|
 | relay    | Railway   | https://buildnowbetter.up.railway.app              |
 | frontend | Vercel    | https://build-now-better-frontend.vercel.app       |
-| screen   | Vercel    | https://build-now-better-screen.vercel.app         |
 
 ### relay (Railway)
 
@@ -83,7 +89,8 @@ separados apuntando al mismo repo.
   `node dist/index.js` en producción no puede transpilar `.ts` al vuelo como sí hace `tsx` en dev).
 - **Start Command:** `node apps/relay/dist/index.js`
 - **Variables de entorno:** `PORT`, `CORS_ORIGIN` (lista separada por comas de orígenes
-  permitidos — hoy los dominios de `frontend` y `screen` en Vercel), `BSC_TESTNET_RPC_URL`,
+  permitidos — hoy el dominio de `frontend` en Vercel, que sirve tanto `/` como `/screen`),
+  `BSC_TESTNET_RPC_URL`,
   `RELAY_START_BLOCK`, `IDENTITY_REGISTRY_ADDRESS`, `SOCIAL_GRAPH_ADDRESS`,
   `REPUTATION_PASSPORT_ADDRESS`, `FOUNDER_PASSPORT_ADDRESS`, `RELAY_HOT_WALLET_PRIVATE_KEY`
   (hot wallet testnet, rotar antes de cualquier evento real).
@@ -96,11 +103,11 @@ separados apuntando al mismo repo.
   BSC testnet produce ~1,3M de bloques por semana y los RPC públicos podan los logs viejos, así que
   un replay profundo no es ni rápido ni posible.
 
-### frontend / screen (Vercel)
+### frontend (Vercel)
 
-Dos proyectos de Vercel sobre el mismo repo, cada uno con su propio **Root Directory**
-(`apps/frontend` / `apps/screen`) — Vercel detecta el workspace de pnpm solo. Variable clave en
-ambos: `NEXT_PUBLIC_RELAY_URL` apuntando a la URL pública del relay.
+Un solo proyecto de Vercel con **Root Directory** `apps/frontend` — Vercel detecta el workspace
+de pnpm solo. Sirve `/` (app de asistente) y `/screen` (pantalla grande) desde el mismo build.
+Variable clave: `NEXT_PUBLIC_RELAY_URL` apuntando a la URL pública del relay.
 
 ## Fase 2 (fuera de alcance por ahora)
 
